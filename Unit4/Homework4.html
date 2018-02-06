@@ -207,6 +207,167 @@ write.csv(major_count, file = &quot;MajorCount.csv&quot;, row.names = F)</code><
 <h1>Question 3</h1>
 <p>Github location: <a href="https://github.com/bbenefield/smumsds" class="uri">https://github.com/bbenefield/smumsds</a></p>
 </div>
+<div id="question-4" class="section level1">
+<h1>Question 4</h1>
+<p>Selection: 15</p>
+<p>| | 0%</p>
+<div style="white-space: pre-line;">One of the greatest strengths of R, relative to other programming languages, is the ease with which we can create
+publication-quality graphics. In this lesson, you’ll learn about base graphics in R.</div>
+<p>…</p>
+<p>|== | 2% | We do not cover the more advanced portions of graphics in R in this lesson. These include lattice, ggplot2 and ggvis.</p>
+<p>…</p>
+<p>|===== | 4% | There is a school of thought that this approach is backwards, that we should teach ggplot2 first. See | <a href="http://varianceexplained.org/r/teach_ggplot2_to_beginners/" class="uri">http://varianceexplained.org/r/teach_ggplot2_to_beginners/</a> for an outline of this view.</p>
+<p>…</p>
+<p>|======= | 7% | Load the included data frame cars with data(cars).</p>
+<blockquote>
+<p>data(cars)</p>
+</blockquote>
+<div style="white-space: pre-line;">You got it right!</div>
+<p>|========== | 9% | To fix ideas, we will work with simple data frames. Our main goal is to introduce various plotting functions and their | arguments. All the output would look more interesting with larger, more complex data sets.</p>
+<p>…</p>
+<p>|============ | 11% | Pull up the help page for cars.</p>
+<blockquote>
+<p>?cars</p>
+</blockquote>
+<div style="white-space: pre-line;">You are amazing!</div>
+<p>|============== | 13% | As you can see in the help page, the cars data set has only two variables: speed and stopping distance. Note that the | data is from the 1920s.</p>
+<p>…</p>
+<p>|================= | 15% | Run head() on the cars data.</p>
+<blockquote>
+<p>head(cars) speed dist 1 4 2 2 4 10 3 7 4 4 7 22 5 8 16 6 9 10</p>
+</blockquote>
+<div style="white-space: pre-line;">Keep up the great work!</div>
+<p>|=================== | 17% | Before plotting, it is always a good idea to get a sense of the data. Key R commands for doing so include, dim(), | names(), head(), tail() and summary().</p>
+<p>…</p>
+<p>|====================== | 20% | Run the plot() command on the cars data frame.</p>
+<blockquote>
+<p>plot(cars)</p>
+</blockquote>
+<div style="white-space: pre-line;">That’s a job well done!</div>
+<p>|======================== | 22% | As always, R tries very hard to give you something sensible given the information that you have provided to it. First, | R notes that the data frame you have given it has just two columns, so it assumes that you want to plot one column | versus the other.</p>
+<p>…</p>
+<p>|=========================== | 24% | Second, since we do not provide labels for either axis, R uses the names of the columns. Third, it creates axis tick | marks at nice round numbers and labels them accordingly. Fourth, it uses the other defaults supplied in plot().</p>
+<p>…</p>
+<p>|============================= | 26% | We will now spend some time exploring plot, but many of the topics covered here will apply to most other R graphics | functions. Note that ‘plot’ is short for scatterplot.</p>
+<p>…</p>
+<p>|=============================== | 28% | Look up the help page for plot().</p>
+<blockquote>
+<p>?plot</p>
+</blockquote>
+<div style="white-space: pre-line;">All that hard work is paying off!</div>
+<p>|================================== | 30% | The help page for plot() highlights the different arguments that the function can take. The two most important are x | and y, the variables that will be plotted. For the next set of questions, include the argument names in your answers. | That is, do not type plot(cars<span class="math inline">\(speed, cars\)</span>dist), although that will work. Instead, use plot(x = cars<span class="math inline">\(speed, y = | cars\)</span>dist).</p>
+<p>…</p>
+<p>|==================================== | 33% | Use plot() command to show speed on the x-axis and dist on the y-axis from the cars data frame. Use the form of the | plot command in which vectors are explicitly passed in as arguments for x and y.</p>
+<blockquote>
+<p>Plot(x = cars<span class="math inline">\(speed, y = cars\)</span>dist) Error in Plot(x = cars<span class="math inline">\(speed, y = cars\)</span>dist) : could not find function “Plot” plot(x = cars<span class="math inline">\(speed, y = cars\)</span>dist)</p>
+</blockquote>
+<div style="white-space: pre-line;">Your dedication is inspiring!</div>
+<p>|======================================= | 35% | Note that this produces a slightly different answer than plot(cars). In this case, R is not sure what you want to use | as the labels on the axes, so it just uses the arguments which you pass in, data frame name and dollar signs included.</p>
+<p>…</p>
+<p>|========================================= | 37% | Note that there are other ways to call the plot command, i.e., using the “formula” interface. For example, we get a | similar plot to the above with plot(dist ~ speed, cars). However, we will wait till later in the lesson before using | the formula interface.</p>
+<p>…</p>
+<p>|=========================================== | 39% | Use plot() command to show dist on the x-axis and speed on the y-axis from the cars data frame. This is the opposite | of what we did above.</p>
+<blockquote>
+<p>plot(x = cars<span class="math inline">\(dist, y = cars\)</span>speed)</p>
+</blockquote>
+<div style="white-space: pre-line;">That’s the answer I was looking for.</div>
+<p>|============================================== | 41% | It probably makes more sense for speed to go on the x-axis since stopping distance is a function of speed more than | the other way around. So, for the rest of the questions in this portion of the lesson, always assign the arguments | accordingly.</p>
+<p>…</p>
+<p>|================================================ | 43% | In fact, you can assume that the answers to the next few questions are all of the form plot(x = cars<span class="math inline">\(speed, y = | cars\)</span>dist, …) but with various arguments used in place of the …</p>
+<p>…</p>
+<p>|=================================================== | 46% | Recreate the plot with the label of the x-axis set to “Speed”.</p>
+<blockquote>
+<p>plot(x = cars<span class="math inline">\(speed, y = cars\)</span>dist, xlab = “Speed”)</p>
+</blockquote>
+<div style="white-space: pre-line;">Excellent work!</div>
+<p>|===================================================== | 48% | Recreate the plot with the label of the y-axis set to “Stopping Distance”.</p>
+<blockquote>
+<p>plot(x = cars<span class="math inline">\(speed, y = cars\)</span>dist, ylab = “Stopping Distance”)</p>
+</blockquote>
+<div style="white-space: pre-line;">You got it right!</div>
+<p>|======================================================== | 50% | Recreate the plot with “Speed” and “Stopping Distance” as axis labels.</p>
+<blockquote>
+<p>plot(x = cars<span class="math inline">\(speed, y = cars\)</span>dist, xlab = “Speed”, ylab = “Stopping Distance”)</p>
+</blockquote>
+<div style="white-space: pre-line;">You are amazing!</div>
+<p>|========================================================== | 52% | The reason that plots(cars) worked at the beginning of the lesson was that R was smart enough to know that the first | element (i.e., the first column) in cars should be assigned to the x argument and the second element to the y | argument. To save on typing, the next set of answers will all be of the form, plot(cars, …) with various arguments | added.</p>
+<p>…</p>
+<p>|============================================================ | 54% | For each question, we will only want one additional argument at a time. Of course, you can pass in more than one | argument when doing a real project.</p>
+<p>…</p>
+<p>|=============================================================== | 57% | Plot cars with a main title of “My Plot”. Note that the argument for the main title is “main” not “title”.</p>
+<blockquote>
+<p>plot(x = cars<span class="math inline">\(speed, y = cars\)</span>dist, main = “My Plot”)</p>
+</blockquote>
+<div style="white-space: pre-line;">That’s not exactly what I’m looking for. Try again. Or, type info() for more options.</div>
+<div style="white-space: pre-line;">Type plot(cars, main = “My Plot”) to create the plot.</div>
+<blockquote>
+<p>plot(cars, main = “My Plot”)</p>
+</blockquote>
+<div style="white-space: pre-line;">That’s a job well done!</div>
+<p>|================================================================= | 59% | Plot cars with a sub title of “My Plot Subtitle”.</p>
+<blockquote>
+<p>plot(cars, sub = “My Plot Subtitle”)</p>
+</blockquote>
+<div style="white-space: pre-line;">Great job!</div>
+<p>|==================================================================== | 61% | The plot help page (?plot) only covers a small number of the many arguments that can be passed in to plot() and to | other graphical functions. To begin to explore the many other options, look at ?par. Let’s look at some of the more | commonly used ones. Continue using plot(cars, …) as the base answer to these questions.</p>
+<p>…</p>
+<p>|====================================================================== | 63% | Plot cars so that the plotted points are colored red. (Use col = 2 to achieve this effect.)</p>
+<blockquote>
+<p>plot(cars, col = 2)</p>
+</blockquote>
+<div style="white-space: pre-line;">That’s a job well done!</div>
+<p>|======================================================================== | 65% | Plot cars while limiting the x-axis to 10 through 15. (Use xlim = c(10, 15) to achieve this effect.)</p>
+<blockquote>
+<p>plot(cars, xlim = c(10,15))</p>
+</blockquote>
+<div style="white-space: pre-line;">You are doing so well!</div>
+<p>|=========================================================================== | 67% | You can also change the shape of the symbols in the plot. The help page for points (?points) provides the details.</p>
+<p>…</p>
+<p>|============================================================================= | 70% | Plot cars using triangles. (Use pch = 2 to achieve this effect.)</p>
+<blockquote>
+<p>plot(cars, pch = 2)</p>
+</blockquote>
+<div style="white-space: pre-line;">You got it!</div>
+<p>|================================================================================ | 72% | Arguments like “col” and “pch” may not seem very intuitive. And that is because they aren’t! So, many/most people use | more modern packages, like ggplot2, for creating their graphics in R.</p>
+<p>…</p>
+<p>|================================================================================== | 74% | It is, however, useful to have an introduction to base graphics because many of the idioms in lattice and ggplot2 are | modeled on them.</p>
+<p>…</p>
+<p>|==================================================================================== | 76% | Let’s now look at some other functions in base graphics that may be useful, starting with boxplots.</p>
+<p>…</p>
+<p>|======================================================================================= | 78% | Load the mtcars data frame.</p>
+<blockquote>
+<p>data(mtcars)</p>
+</blockquote>
+<div style="white-space: pre-line;">You got it right!</div>
+<p>|========================================================================================= | 80% | Anytime that you load up a new data frame, you should explore it before using it. In the middle of a swirl lesson, | just type play(). This temporarily suspends the lesson (without losing the work you have already done) and allows you | to issue commands like dim(mtcars) and head(mtcars). Once you are done examining the data, just type nxt() and the | lesson will pick up where it left off.</p>
+<p>…</p>
+<p>|============================================================================================ | 83% | Look up the help page for boxplot().</p>
+<blockquote>
+<p>?boxplot</p>
+</blockquote>
+<div style="white-space: pre-line;">You’re the best!</div>
+<p>|============================================================================================== | 85% | Instead of adding data columns directly as input arguments, as we did with plot(), it is often handy to pass in the | entire data frame. This is what the “data” argument in boxplot() allows.</p>
+<p>…</p>
+<p>|================================================================================================= | 87% | boxplot(), like many R functions, also takes a “formula” argument, generally an expression with a tilde (“~”) which | indicates the relationship between the input variables. This allows you to enter something like mpg ~ cyl to plot the | relationship between cyl (number of cylinders) on the x-axis and mpg (miles per gallon) on the y-axis.</p>
+<p>…</p>
+<p>|=================================================================================================== | 89% | Use boxplot() with formula = mpg ~ cyl and data = mtcars to create a box plot.</p>
+<blockquote>
+<p>boxplot(formula = mpg ~ cyl, data = cars) Error in eval(predvars, data, env) : object ‘mpg’ not found boxplot(mpg ~ cyl, data = cars) Error in eval(predvars, data, env) : object ‘mpg’ not found boxplot(mpg ~ cyl, data = mtcars)</p>
+</blockquote>
+<div style="white-space: pre-line;">Perseverance, that’s the answer.</div>
+<p>|===================================================================================================== | 91% | The plot shows that mpg is much lower for cars with more cylinders. Note that we can use the same set of arguments | that we explored with plot() above to add axis labels, titles and so on.</p>
+<p>…</p>
+<p>|======================================================================================================== | 93% | When looking at a single variable, histograms are a useful tool. hist() is the associated R function. Like plot(), | hist() is best used by just passing in a single vector.</p>
+<p>…</p>
+<p>|========================================================================================================== | 96% | Use hist() with the vector mtcars$mpg to create a histogram.</p>
+<blockquote>
+<p>hist(mtcars$mpg)</p>
+</blockquote>
+<div style="white-space: pre-line;">You’re the best!</div>
+<p>|============================================================================================================= | 98% | In this lesson, you learned how to work with base graphics in R. The best place to go from here is to study the | ggplot2 package. If you want to explore other elements of base graphics, then this web page | (<a href="http://www.ling.upenn.edu/~joseff/rstudy/week4.html" class="uri">http://www.ling.upenn.edu/~joseff/rstudy/week4.html</a>) provides a useful overview.</p>
+<p>…</p>
+<p>|===============================================================================================================| 100%</p>
+</div>
 
 
 
