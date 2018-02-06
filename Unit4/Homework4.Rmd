@@ -5,4 +5,63 @@ date: "February 3, 2018"
 output: html_document
 ---
 
+# Question 1
+``` {r}
+# load library
+library("fivethirtyeight")
 
+# https://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/
+# assign dataset to dataframe
+df <- college_recent_grads
+
+# get df dimensions
+dim(df)
+
+# get column names and display
+names <- colnames(df)
+print(names)
+```
+
+# Question 2
+``` {r}
+# get column names and display
+names <- colnames(df)
+print(names)
+colCount <- length(names)
+print(colCount)
+
+# Create vector of unique column names
+majorCategory <- unique(df$major_category)
+
+# Calculate sum and percentage of each major
+mCount <- c()
+mFreq <- c()
+
+for (major in majorCategory) {
+  mCount <- append(mCount, sum(df$major_category == major))
+  mFreq <- append(mFreq, mean(df$major_category == major))
+}
+
+# Assing results to dataframe
+major_count <- data.frame(mCount, mFreq)
+
+# Change row and column names
+row.names(major_count) <- majorCategory
+colnames(major_count) <- c("Count", "Frequency")
+
+# Display results in a bar graph
+par(las=2)
+barplot(major_count$Count, names.arg = row.names(major_count), 
+        horiz = T, main = "2014 College Graduate Majors", xlab = "Count", 
+        legend.text = "Majors", xlim = c(0,30), col = "blue")
+
+barplot(major_count$Frequency, names.arg = row.names(major_count), 
+        horiz = T, main = "2014 College Graduate Majors", xlab = "Percentage", 
+        legend.text = "Majors", xlim = c(0,.2), col = "blue")
+
+# Write data out to a csv file
+write.csv(major_count, file = "MajorCount.csv", row.names = F)
+```
+
+# Question 3
+Github location: https://github.com/bbenefield/smumsds
