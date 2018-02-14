@@ -1,0 +1,105 @@
+---
+title: "Benefield_Homework5"
+author: "Brett Benefield"
+date: "February 13, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+``` {r echo = TRUE}
+```
+
+# Question 1
+## a
+``` {r}
+# Read in 2016 data and assign logical col names
+df <- read.table(file = "yob2016.txt", header = F, sep = ";")
+colnames(df) <- c("Name","Gender","Count")
+```
+
+## b
+``` {r}
+# Display summary results of dataframe
+dim(df)
+summary(df)
+```
+## c
+``` {r}
+# match pattern of name ending in yyy
+grep("yyy$", df$Name)
+df[212,]
+```
+
+## d
+``` {r}
+# remove name from dataframe
+y2016 <- df[-212,]
+```
+
+# Question 2
+## a
+``` {r}
+# Read in 2015 data and assign local col names
+y2015 <- read.csv(file = "yob2015.txt", header = F)
+colnames(y2015) <- c("Name","Gender","Count")
+```
+
+## b
+``` {r}
+# Display last 10 rows
+tail(y2015, n = 10)
+```
+They are names I wouldn't choose for my child, all Male, and all equal 5
+
+## c
+``` {r}
+# Merge 2016 and 2015 data set by Name & Gender some names are M or F
+# Credit Jonathan Marin for noticing this fact and posting to 2ds wall
+final <- merge(y2016, y2015, by = c("Name","Gender"))
+
+# Verify no NA's in Count columns
+sum(is.na(final$Count.x))
+sum(is.na(final$Count.y))
+```
+
+# Question 3
+## a
+``` {r}
+# Combine totals for 2015 and 2016
+final["Total"]  = final$Count.x + final$Count.y
+
+# Display number of unique names
+dim(final)[1]
+```
+
+## b
+``` {r}
+# Remove individual count columns
+final <- final[, -c(3,4)]
+
+# Make column names logical
+colnames(final) <- c("Name", "Gender", "Total")
+
+# Sort by descending order and display top 10 names
+final <- final[order(-final$Total),]
+head(final, n = 10)
+```
+
+## c
+``` {r}
+# Keep only the female names
+final <- final[final$Gender == "F",]
+
+# Display 10 most popular girl names
+head(final, n = 10)
+```
+
+## d
+``` {r}
+# Remove Gender Column and output results to csv file
+finalResult <- final[,-c(2)]
+write.csv(finalResult, file = "TopTenGirlNames.csv", row.names = F)
+```
