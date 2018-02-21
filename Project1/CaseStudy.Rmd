@@ -1,0 +1,121 @@
+---
+title: "AmazonBeerStudy"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Amazon Beer Study
+As part of Amazon's process to select a second headquarters, we have been tasked with analyzing the distribution of breweries, beer, and there ABV and IBV values. There have been studies that correlate states with more breweries and access to higher ABV beers to have happier employees. While this information will not be the final factor for selecting a headquarters, Amazon is exploring all applicable data available to aid in its selection.
+
+As such they have provided us with two files. Breweries.csv which contains a list of all known breweries in the United States and Washington DC. As well as the beers that each brewery makes and their alcholic content. We will be combining these two data sets in order to provide a list of potential states that meet the desired criteria.
+
+# Question 1
+``` {r}
+# Load in the data sets, UTF-8 encoding necessary due to non-ascii characters being in the data
+beers <- read.csv("Beers.csv", header = T, sep = ",", encoding = 'UTF-8')
+breweries <- read.csv("Breweries.csv", header = T, sep = ",", encoding = 'UTF-8')
+
+# Change Brew_ID to Brewery_id in order to make merging the two data sets easier
+colnames(breweries) <- c("Brewery_id", "Name", "City", "State")
+
+#After uploading the raw brewery data, we counted how many breweries were in each state.
+breweries.per.state <- aggregate(data.frame(count=breweries$State), list(value=breweries$State), length)
+
+#We then ordered the data to list number of breweries per state in descending order.
+breweries.per.state.ordered <- breweries.per.state[order(-breweries.per.state$count),]
+breweries.per.state.ordered
+```
+
+# Question 2
+``` {r}
+# Combine the two data sets based on the Brewery_id id
+beer_breweries_merge <- merge(beers, breweries, by = "Brewery_id", all = T)
+
+# Print the first 6 and last 6 rows of the combined data set
+head(beer_breweries_merge, n = 6)
+tail(beer_breweries_merge, n = 6)
+```
+
+# Question 3
+``` {r}
+# Count number of NA values for ABV column
+NA_in_ABV <- sum(is.na(beer_breweries_merge$ABV))
+
+# Count number of NA values for IBU column
+NA_in_IBU <- sum(is.na(beer_breweries_merge$IBU))
+
+# Print count for ABV
+print(NA_in_ABV)
+
+# Print count for IBV
+print(NA_in_IBU)
+```
+
+# Question 4
+``` {r}
+#We then found the median alcohol by volume (ABV) in the reported beers by each state.
+median.abv.per.state <- aggregate(data.frame(median=beer_breweries_merge$ABV), list(value=beer_breweries_merge$State), median, na.rm=TRUE)
+names(median.abv.per.state) = c("State", "Median.ABV")
+
+#We then found the median international bitter units (IBU) in the reported beers by each state.
+median.ibu.per.state <- aggregate(data.frame(median=beer_breweries_merge$IBU), list(value=beer_breweries_merge$State), median, na.rm=TRUE)
+names(median.ibu.per.state) = c("State", "Median.IBU")
+
+#A data frame with just the median calculations per state was made.
+median.df <- merge(median.abv.per.state, median.ibu.per.state, by="State")
+names(median.df) = c("State", "Median.ABV", "Median.IBU")
+median.df.orderedABV <- median.df[order(-median.df$Median.ABV),]
+median.df.orderedIBU <- median.df[order(-median.df$Median.IBU),]
+
+library(ggplot2)
+
+#A bar chart was made of the median ABVs per state.
+ggplot(data=median.df.orderedABV, aes(x=State, y=Median.ABV)) + geom_bar(stat="identity", fill="steelblue") + geom_text(aes(label=Median.ABV), vjust=-0.3, size=3.5) + theme_minimal() + coord_flip()
+
+#A bar chart was made of the median IBUs per state.
+ggplot(data=median.df.orderedIBU, aes(x=State, y=Median.IBU)) + geom_bar(stat="identity", fill="steelblue") + geom_text(aes(label=Median.IBU), vjust=-0.3, size=3.5) + theme_minimal() + coord_flip()
+```
+
+# Question 5
+``` {r}
+# Determine max value of ABV ignoring NAs
+abvMax <- max(beer_breweries_merge$ABV, na.rm = T)
+
+# Determine max value of IBU ignoring NAs
+ibuMax <- max(beer_breweries_merge$IBU, na.rm = T)
+
+# State with the highest ABV value
+abvState <- beer_breweries_merge[which(beer_breweries_merge$ABV == abvMax), ][10]
+
+# State with the highest IBU value
+ibuState <- beer_breweries_merge[which(beer_breweries_merge$IBU == ibuMax), ][10]
+
+# Print ABV State
+print(abvState)
+
+# Print IBU State
+print(ibuState)
+```
+
+# Question 6
+``` {r}
+library(data.table)
+beer_breweries_merged_table <- as.data.table(beer_breweries_merge)
+colnames(beer_breweries_merged_table)<- c("Brew_ID","Breweries_Name","City","State","Beer_Brand","Beer_ID","ABV","IBU","Style","Ounces")
+
+beer_breweries_merged_table_no_NAs <- beer_breweries_merge[!rowSums((is.na(beer_breweries_merge))),]
+beer_breweries_merged_table_no_NAs_abv_total <- as.data.table(beer_breweries_merged_table_no_NAs)
+class(beer_breweries_merged_table_no_NAs)
+beer_breweries_merged_table_no_NAs_abv_total <- beer_breweries_merged_table_no_NAs_abv_total[,sum(ABV), by ="State"]
+colnames(beer_breweries_merged_table_no_NAs_abv_total) <- c("State","ABV")
+beer_breweries_merged_table_no_NAs_abv_total <- beer_breweries_merged_table_no_NAs_abv_total[order(beer_breweries_merged_table_no_NAs_abv_total$ABV, decreasing = TRUE)]
+print(beer_breweries_merged_table_no_NAs_abv_total)
+beer_breweries_merged_table_no_NAs_ibu_total <- as.data.table(beer_breweries_merged_table_no_NAs)
+beer_breweries_merged_table_no_NAs_ibu_total <- beer_breweries_merged_table_no_NAs_ibu_total[,sum(IBU), by ="State"]
+colnames(beer_breweries_merged_table_no_NAs_ibu_total) <- c("State","IBU")
+beer_breweries_merged_table_no_NAs_ibu_total <- beer_breweries_merged_table_no_NAs_ibu_total[order(beer_breweries_merged_table_no_NAs_ibu_total$IBU, decreasing = TRUE)]
+print(beer_breweries_merged_table_no_NAs_ibu_total)
+```
