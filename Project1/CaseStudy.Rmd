@@ -27,6 +27,10 @@ breweries.per.state <- aggregate(data.frame(count=breweries$State), list(value=b
 #We then ordered the data to list number of breweries per state in descending order.
 breweries.per.state.ordered <- breweries.per.state[order(-breweries.per.state$count),]
 breweries.per.state.ordered
+
+#To give a quick summary of the top 10 charts an ordered bar chart was made
+top10.brewery.states <- head(breweries.per.state.ordered, 10)
+ggplot(data=top10.brewery.states, aes(x=reorder(State, Breweries), y=Breweries, color=Breweries)) + geom_bar(stat="identity", fill="orange") + theme_minimal() + coord_flip() + labs(title="Top 10 Breweries per State")
 ```
 
 # Question 2
@@ -73,10 +77,10 @@ median.df.orderedIBU <- median.df[order(-median.df$Median.IBU),]
 library(ggplot2)
 
 #A bar chart was made of the median ABVs per state.
-ggplot(data=median.df.orderedABV, aes(x=State, y=Median.ABV)) + geom_bar(stat="identity", fill="steelblue") + geom_text(aes(label=Median.ABV), vjust=-0.3, size=3.5) + theme_minimal() + coord_flip()
+ggplot(data=median.df.orderedABV, aes(x=reorder(State, Median.ABV), y=Median.ABV)) + geom_bar(stat="identity", fill="orange") + theme_minimal() + coord_flip() + labs(title="Median ABVs per State")
 
 #A bar chart was made of the median IBUs per state.
-ggplot(data=median.df.orderedIBU, aes(x=State, y=Median.IBU)) + geom_bar(stat="identity", fill="steelblue") + geom_text(aes(label=Median.IBU), vjust=-0.3, size=3.5) + theme_minimal() + coord_flip()
+ggplot(data=median.df.orderedIBU, aes(x=reorder(State, Median.IBU), y=Median.IBU)) + geom_bar(stat="identity", fill="orange") + theme_minimal() + coord_flip() + labs(title="Median IBUs per State")
 ```
 
 # Question 5
