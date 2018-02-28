@@ -1,4 +1,4 @@
-Brew_ID,Name,City,State
+Brewery_id,Name,City,State
 1,NorthGate Brewing ,Minneapolis, MN
 2,Against the Grain Brewery,Louisville, KY
 3,Jack's Abby Craft Lagers,Framingham, MA
@@ -96,7 +96,7 @@ Brew_ID,Name,City,State
 95,Warped Wing Brewing Company,Dayton, OH
 96,Blackrocks Brewery,Marquette, MA
 97,Catawba Valley Brewing Company,Morganton, NC
-98,TrÃ¶egs Brewing Company,Hershey, PA
+98,Tröegs Brewing Company,Hershey, PA
 99,Mission Brewery,San Diego, CA
 100,Christian Moerlein Brewing Company,Cincinnati, OH
 101,West Sixth Brewing,Lexington, KY
@@ -137,8 +137,6 @@ Brew_ID,Name,City,State
 136,Pug Ryan's Brewery,Dillon, CO
 137,Hops & Grains Brewing Company,Austin, TX
 138,Sietsema Orchards and Cider Mill,Ada, MI
-139,Summit Brewing Company,St Paul, MN
-140,Core Brewing & Distilling Company,Springdale, AR
 141,Independence Brewing Company,Austin, TX
 142,Cigar City Brewing Company,Tampa, FL
 143,Third Street Brewhouse,Cold Spring, MN
@@ -376,9 +374,7 @@ Brew_ID,Name,City,State
 375,Astoria Brewing Company,Astoria, OR
 376,Maui Brewing Company,Lahaina, HI
 377,RoughTail Brewing Company,Midwest City, OK
-378,Lucette Brewing Company,Menominee, WI
 379,Bold City Brewery,Jacksonville, FL
-380,Grey Sail Brewing of Rhode Island,Westerly, RI
 381,Blue Blood Brewing Company,Lincoln, NE
 382,Swashbuckler Brewing Company,Manheim, PA
 383,Blue Mountain Brewery,Afton, VA

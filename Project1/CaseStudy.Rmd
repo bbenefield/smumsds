@@ -7,6 +7,64 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+``` {r}
+# Load necessary Libraries
+library(plyr)
+library(ggplot2)
+
+# Data Cleanse Function
+cleanData <- function(beerList, beerData) {
+    # Leave original data the same
+    nonDupBeer <- beerData
+    # Loop through list of names
+    for (name in beerList) {
+        # Find beers with the same
+        tmpResult <- beerData[which(beerData$Name.x == name), ]
+        # print(tmpResult)
+        rCount = nrow(tmpResult)
+        # print(rCount)
+        rNames = rownames(tmpResult)
+        # print(rNames)
+        
+        # Loop through list of beers with same name. If They match on all 4 columns, remove the last beer
+        # from the list
+        while (rCount > 1) {
+            # If name, abv, ibu, and brewery_id are both the same, remove duplicate entry
+            if (identical(tmpResult[rCount - 1, "Name.x"], tmpResult[rCount, "Name.x"]) && 
+                identical(tmpResult[rCount - 1, "ABV"], tmpResult[rCount, "ABV"]) &&
+                identical(tmpResult[rCount - 1, "IBU"], tmpResult[rCount, "IBU"]) &&
+                identical(tmpResult[rCount, "Brewery_id"], tmpResult[rCount, "Brewery_id"])) {
+                
+                # Convert row id to integer
+                rmvID <- as.integer(rNames[rCount])
+                #cat("Match Found\n")
+                #cat("Name: ", name, "\n")
+                #cat("Removing row id: ", rmvID, "\n")
+                # Duplicate found, remove from beer list
+                nonDupBeer <- nonDupBeer[-rmvID, ]
+            } else {
+                # Display remaining list of duplicates to inspect manually
+                if (identical(tmpResult[rCount - 1, "City"], tmpResult[rCount, "City"]) &&
+                    identical(tmpResult[rCount - 1, "State"], tmpResult[rCount, "State"])) {
+                    
+                    #print(tmpResult)
+                    #rmvID <- as.integer(rNames[rCount])
+                    #cat("Removing: ", name, " ", rmvID, "\n")
+                    #nonDupBeer <- nonDupBeer[-rmvID, ]
+                    #removalCount = removalCount + 1
+                }
+            }
+            # Reduce count and repeat loop
+            rCount = rCount - 1
+        }
+    }
+    # After visual inspection of remaining duplicates that match city and state remove these duplicates
+    nonDupBeer <- nonDupBeer[-c(435, 1924, 1262, 779, 951), ]
+    # Return list with duplicate beers removed
+    return(nonDupBeer)
+}
+```
+
 # Amazon Beer Study
 As part of Amazon's process to select a second headquarters, we have been tasked with analyzing the distribution of breweries, beer, and there ABV and IBV values. There have been studies that correlate states with more breweries and access to higher ABV beers to have happier employees. While this information will not be the final factor for selecting a headquarters, Amazon is exploring all applicable data available to aid in its selection.
 
@@ -21,22 +79,29 @@ breweries <- read.csv("Breweries.csv", header = T, sep = ",", encoding = 'UTF-8'
 # Change Brew_ID to Brewery_id in order to make merging the two data sets easier
 colnames(breweries) <- c("Brewery_id", "Name", "City", "State")
 
+# Clean brewery data
+trim.leading <- function (x) sub("^\\s+", "", x)
+stateList <- unique(trim.leading(tolower(breweries$State)))
+
 #After uploading the raw brewery data, we counted how many breweries were in each state.
 breweries.per.state <- aggregate(data.frame(count=breweries$State), list(value=breweries$State), length)
 
 #We then ordered the data to list number of breweries per state in descending order.
 breweries.per.state.ordered <- breweries.per.state[order(-breweries.per.state$count),]
 breweries.per.state.ordered
-
-#To give a quick summary of the top 10 charts an ordered bar chart was made
-top10.brewery.states <- head(breweries.per.state.ordered, 10)
-ggplot(data=top10.brewery.states, aes(x=reorder(State, Breweries), y=Breweries, color=Breweries)) + geom_bar(stat="identity", fill="orange") + theme_minimal() + coord_flip() + labs(title="Top 10 Breweries per State")
 ```
 
 # Question 2
 ``` {r}
-# Combine the two data sets based on the Brewery_id id
-beer_breweries_merge <- merge(beers, breweries, by = "Brewery_id", all = T)
+# Clean and Combine the two data sets based on the Brewery_id id
+# Combine beer and brewery data set
+dfMerge <- merge(beers, breweries, by = "Brewery_id", all = T)
+# Create list of duplicate beers
+beerList <- count(dfMerge, "Name.x")
+# Return names of beers with duplicates found
+duplicateBeerList <- beerList[(beerList$freq > 1), ]
+# Clean the beer data and return
+beer_breweries_merge <- cleanData(duplicateBeerList$Name, dfMerge)
 
 # Print the first 6 and last 6 rows of the combined data set
 head(beer_breweries_merge, n = 6)
@@ -77,10 +142,10 @@ median.df.orderedIBU <- median.df[order(-median.df$Median.IBU),]
 library(ggplot2)
 
 #A bar chart was made of the median ABVs per state.
-ggplot(data=median.df.orderedABV, aes(x=reorder(State, Median.ABV), y=Median.ABV)) + geom_bar(stat="identity", fill="orange") + theme_minimal() + coord_flip() + labs(title="Median ABVs per State")
+ggplot(data=median.df.orderedABV, aes(x=State, y=Median.ABV)) + geom_bar(stat="identity", fill="steelblue") + geom_text(aes(label=Median.ABV), vjust=-0.3, size=3.5) + theme_minimal() + coord_flip()
 
 #A bar chart was made of the median IBUs per state.
-ggplot(data=median.df.orderedIBU, aes(x=reorder(State, Median.IBU), y=Median.IBU)) + geom_bar(stat="identity", fill="orange") + theme_minimal() + coord_flip() + labs(title="Median IBUs per State")
+ggplot(data=median.df.orderedIBU, aes(x=State, y=Median.IBU)) + geom_bar(stat="identity", fill="steelblue") + geom_text(aes(label=Median.IBU), vjust=-0.3, size=3.5) + theme_minimal() + coord_flip()
 ```
 
 # Question 5
@@ -107,19 +172,40 @@ print(ibuState)
 # Question 6
 ``` {r}
 library(data.table)
-beer_breweries_merged_table <- as.data.table(beer_breweries_merge)
+NA_in_ABV <- sum(is.na(beer_breweries_merge$ABV))
+NA_in_IBU <- sum(is.na(beer_breweries_merge$IBU))
+print(NA_in_ABV)
+print(NA_in_IBU)
+beer_breweries_merged_table <- beer_breweries_merge
 colnames(beer_breweries_merged_table)<- c("Brew_ID","Breweries_Name","City","State","Beer_Brand","Beer_ID","ABV","IBU","Style","Ounces")
-
 beer_breweries_merged_table_no_NAs <- beer_breweries_merge[!rowSums((is.na(beer_breweries_merge))),]
+summary(beer_breweries_merged_table_no_NAs$ABV)
 beer_breweries_merged_table_no_NAs_abv_total <- as.data.table(beer_breweries_merged_table_no_NAs)
 class(beer_breweries_merged_table_no_NAs)
 beer_breweries_merged_table_no_NAs_abv_total <- beer_breweries_merged_table_no_NAs_abv_total[,sum(ABV), by ="State"]
 colnames(beer_breweries_merged_table_no_NAs_abv_total) <- c("State","ABV")
 beer_breweries_merged_table_no_NAs_abv_total <- beer_breweries_merged_table_no_NAs_abv_total[order(beer_breweries_merged_table_no_NAs_abv_total$ABV, decreasing = TRUE)]
-print(beer_breweries_merged_table_no_NAs_abv_total)
+View(beer_breweries_merged_table_no_NAs_abv_total)
 beer_breweries_merged_table_no_NAs_ibu_total <- as.data.table(beer_breweries_merged_table_no_NAs)
 beer_breweries_merged_table_no_NAs_ibu_total <- beer_breweries_merged_table_no_NAs_ibu_total[,sum(IBU), by ="State"]
 colnames(beer_breweries_merged_table_no_NAs_ibu_total) <- c("State","IBU")
 beer_breweries_merged_table_no_NAs_ibu_total <- beer_breweries_merged_table_no_NAs_ibu_total[order(beer_breweries_merged_table_no_NAs_ibu_total$IBU, decreasing = TRUE)]
-print(beer_breweries_merged_table_no_NAs_ibu_total)
+View(beer_breweries_merged_table_no_NAs_ibu_total)
+median.abv.per.state <- aggregate(beer_breweries_merged_table_no_NAs[,7], list(beer_breweries_merged_table_no_NAs$State),median)
+colnames(median.abv.per.state) <- c("State","Median ABV")
+View(median.abv.per.state)
+median.ibu.per.state <- aggregate(beer_breweries_merged_table_no_NAs[,8], list(beer_breweries_merged_table_no_NAs$State),median)
+colnames(median.ibu.per.state) <- c("State","Median IBU")
+View(median.ibu.per.state)
+median_ibu_abv_by_state <- merge(median.abv.per.state,median.ibu.per.state,by="State")
+View(median_ibu_abv_by_state)
+melted_data <- melt(median_ibu_abv_by_state,id.vars= "State", measure.vars = c("Median ABV","Median IBU"))
+colnames(melted_data) <- c("State","Beer_Parameter", "Value")
+View(melted_data)
+library(ggplot2)
+ggplot(melted_data, aes(x= State, y= Value)) + geom_bar(aes(fill = Beer_Parameter), position = "dodge", stat = "identity") + scale_y_log10() + theme(axis.text.x = element_text(angle = 90, hjust= 1.5))
+colnames(beer_breweries_merged_table_no_NAs) <- c("Brew_ID", "Brewery_Name", "City", "State", "Beer_Name", "Beer_ID","ABV","IBU","Style","Ounces")
+ggplot(beer_breweries_merged_table_no_NAs, aes(x=ABV, y = IBU)) + geom_point()+ geom_smooth(method = lm)
+cor.test(beer_breweries_merged_table_no_NAs$ABV, beer_breweries_merged_table_no_NAs$IBU)
+lm(beer_breweries_merged_table_no_NAs$ABV ~ beer_breweries_merged_table_no_NAs$IBU )
 ```
