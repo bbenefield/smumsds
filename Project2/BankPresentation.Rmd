@@ -1,0 +1,455 @@
+---
+title: "Project 2 Long Term Deposits"
+author: "Ryan Bass, Brett Benefield"
+date: "April 17, 2018"
+output: html_document
+---
+#### Data Set: https://archive.ics.uci.edu/ml/datasets/bank+marketing
+#### Source: [Moro et al., 2014] S. Moro, P. Cortez and P. Rita. A Data-Driven Approach to Predict the Success of Bank Telemarketing. Decision Support Systems, Elsevier, 62:22-31, June 2014
+
+# Long Term Deposit Prediction
+``` {r echo = FALSE, message = FALSE, warning = FALSE}
+# Load libraries
+library(ggplot2)
+library(randomForest)
+library(tidyverse)
+library(pROC)
+library(shiny)
+library(caret)
+```
+
+# Executive Summary
+The purpose of this data set is to predict whether a client will subscribe to a long term deposit (CD). The data was collected from a Portuguese banking institute which conducted a marketing campaign through phone calls.
+
+# Introduction
+Using variables such age, marital status, education, job, duration of the call, we attempted to classify whether a client would sign up for a long term deposit. After initial exploration of the data through plots and graphs we used a random forest model, logistic regression model, and a simplified regression model to aid in this classification. 
+
+```{r, data load initial analysis, echo=FALSE, warning = FALSE}
+# Set working directory
+setwd("C:\\Users\\STUARTBENEFIELD\\Documents\\SMU\\DDS\\CaseStudy2")
+
+# Read in data set
+bank <- read.table("bank-full.csv", sep = ";", header = TRUE)
+```
+
+### Intial exploratory plot of age, balance, and the Term Deposit result overlaid
+``` {r, echo = FALSE, warning = FALSE}
+ggplot(bank, aes(x=age, y=balance, color=y)) + geom_point() + scale_y_log10() + theme_gray() + scale_color_manual(values=c("red3", "gold2")) + theme_dark() + labs(title="Age vs. Balance by Term Deposit Result", colour="Deposit Result", x="Age", y="Bank Account Balance")
+```
+
+#### NOTE: the abrubt lack of people contacted from the bank that are older than 60. Also "yes" seems more prevalent % wise in the greater than 60's and balances above $10.
+
+### Histogram of age distribution, and the term deposit result overlaid
+```{r, histogram of age, echo=FALSE}
+ggplot(bank, aes(bank$age, fill=y)) + geom_histogram(bins=77) + scale_fill_manual(values=c("red3", "gold2")) + theme_dark() + labs(title="Age distribution with Term Deposit result overlay", x="Age", y="Count", fill="Deposit Result")
+```
+
+#### NOTE: Can see while majority of the ages are in their late 20's and early 30's, the older the customers are the higher % they are to start a term deposit
+
+### Yes to term deposit by decade age ranges
+```{r, percent TDs per age range, echo=FALSE}
+#to analyze age groups by decades of age have to subset them all into their own dataframe first
+bank.olderthan60 <- subset(bank, age >= 60)
+bank.btwn50.60 <- subset(bank, age >= 50 & age < 60)
+bank.btwn40.50 <- subset(bank, age >= 40 & age < 50)
+bank.btwn30.40 <- subset(bank, age >= 30 & age < 40)
+bank.btwn20.30 <- subset(bank, age >= 20 & age < 30)
+bank.lessthan20 <- subset(bank, age < 20)
+
+#to get percentages of yes's by decades of age
+percent.olderthan60.y.yes <- (length(bank.olderthan60$y[bank.olderthan60$y=='yes'])/length(bank.olderthan60$y))*100
+percent.btwn50.60.y.yes <- (length(bank.btwn50.60$y[bank.btwn50.60$y=='yes'])/length(bank.btwn50.60$y))*100
+percent.btwn40.50.y.yes <- (length(bank.btwn40.50$y[bank.btwn40.50$y=='yes'])/length(bank.btwn40.50$y))*100
+percent.btwn30.40.y.yes <- (length(bank.btwn30.40$y[bank.btwn30.40$y=='yes'])/length(bank.btwn30.40$y))*100
+percent.btwn20.30.y.yes <- (length(bank.btwn20.30$y[bank.btwn20.30$y=='yes'])/length(bank.btwn20.30$y))*100
+percent.lessthan20.y.yes <- (length(bank.lessthan20$y[bank.lessthan20$y=='yes'])/length(bank.lessthan20$y))*100
+y.percentages.by.ages <- c(percent.lessthan20.y.yes, percent.btwn20.30.y.yes, percent.btwn30.40.y.yes, percent.btwn40.50.y.yes, percent.btwn50.60.y.yes, percent.olderthan60.y.yes)
+age.ranges <- c("<20", "20-30", "30-40", "40-50", "50-60", ">60")
+age.ranges <- factor(age.ranges, levels=c("<20", "20-30", "30-40", "40-50", "50-60", ">60"))
+y.percentages.by.ages.df <- data.frame(age.ranges, y.percentages.by.ages)
+
+#creating list of n's of the people who started TD per age range
+n.of.y.percentages.by.age.range <- c(length(bank.lessthan20$y[bank.lessthan20$y=='yes']), length(bank.btwn20.30$y[bank.btwn20.30$y=='yes']), length(bank.btwn30.40$y[bank.btwn30.40$y=='yes']), length(bank.btwn40.50$y[bank.btwn40.50$y=='yes']), length(bank.btwn50.60$y[bank.btwn50.60$y=='yes']), length(bank.btwn50.60$y[bank.btwn50.60$y=='yes']))
+
+#yes to term deposit by decade age ranges
+ggplot(y.percentages.by.ages.df, aes(x=age.ranges, y=y.percentages.by.ages)) + geom_bar(stat="identity", fill="gold2") + theme_dark() + labs(title="Term Deposit % distribution by Age Ranges", y="Term Deposit %", x="Age Range") + geom_hline(yintercept=(100*(length(bank$y[bank$y=='yes'])/length(bank$y))), colour="red3") + annotate("text", x = 1:6, y = 1, label = n.of.y.percentages.by.age.range)
+```
+
+#### NOTE: Can see the youngest and oldest age ranges are the highest to agree to a Term Deposit. need to put n's and error bars on this though
+
+### Plotting of the % who started a Term Deposit by their education level
+```{r, percent TDs per education level, echo=FALSE}
+#creation of data frames of education level subsets
+bank.edu.unk <- subset(bank, education=="unknown")
+bank.edu.sec <- subset(bank, education=="secondary")
+bank.edu.prim <- subset(bank, education=="primary")
+bank.edu.tert <- subset(bank, education=="tertiary")
+
+#solving for percent per education level who enrolled in a Term Deposit
+percent.edu.unk.y.yes <- (length(bank.edu.unk$y[bank.edu.unk$y=='yes'])/length(bank.edu.unk$y))*100
+percent.edu.sec.y.yes <- (length(bank.edu.sec$y[bank.edu.sec$y=='yes'])/length(bank.edu.sec$y))*100
+percent.edu.prim.y.yes <- (length(bank.edu.prim$y[bank.edu.prim$y=='yes'])/length(bank.edu.prim$y))*100
+percent.edu.tert.y.yes <- (length(bank.edu.tert$y[bank.edu.tert$y=='yes'])/length(bank.edu.tert$y))*100
+
+#creating a data frame of the education levels, percent that said yes, and the total count per education level
+y.percentages.by.edu <- c(percent.edu.unk.y.yes, percent.edu.prim.y.yes, percent.edu.sec.y.yes, percent.edu.tert.y.yes)
+edu.level <- c("Unknown", "Primary", "Secondary", "Tertiary")
+edu.level <- factor(edu.level, levels=c("Unknown", "Primary", "Secondary", "Tertiary"))
+n.per.edu.level <- c(length(bank.edu.unk$y), length(bank.edu.prim$y), length(bank.edu.sec$y), length(bank.edu.tert$y))
+y.percentages.by.edu.df <- data.frame(edu.level, y.percentages.by.edu, n.per.edu.level)
+
+#making a string of the total counts of who said yes per job type
+n.of.y.percentages.by.edu <- c(length(bank.edu.unk$y[bank.edu.unk$y=='yes']), length(bank.edu.prim$y[bank.edu.prim$y=='yes']), length(bank.edu.sec$y[bank.edu.sec$y=='yes']), length(bank.edu.tert$y[bank.edu.tert$y=='yes']))
+
+#plotting of the % who started a Term Deposit by their education level
+ggplot(y.percentages.by.edu.df, aes(x=edu.level, y=y.percentages.by.edu)) + geom_bar(stat="identity", fill="gold2") + theme_dark() + labs(title="Term Deposit % Distribution by Education Level of Customer", y="Term Deposit %", x="Education Level") + geom_hline(yintercept=(100*(length(bank$y[bank$y=='yes'])/length(bank$y))), colour="red3") + annotate("text", x = 1:4, y = 1, label = n.of.y.percentages.by.edu)
+```
+
+### Bar graph of the percent who enrolled in Term Deposit per job type (and their total counts)
+```{r, percent TDs per employment type, echo=FALSE}
+#creation of data frames of job subsets
+bank.admin <- subset(bank, job=="admin.")
+bank.bc <- subset(bank, job=="blue-collar")
+bank.entre <- subset(bank, job=="entrepreneur")
+bank.hm <- subset(bank, job=="housemaid")
+bank.mgmt <- subset(bank, job=="management")
+bank.retired <- subset(bank, job=="retired")
+bank.se <- subset(bank,job=="self-employed")
+bank.services <- subset(bank, job=="services")
+bank.student <- subset(bank, job=="student")
+bank.tech <- subset(bank, job=="technician")
+bank.unemployed <- subset(bank, job=="unemployed")
+bank.unk <- subset(bank, job=="unknown")
+
+#solving for percent per job type who enrolled in a Term Deposit
+percent.admin.y.yes <- (length(bank.admin$y[bank.admin$y=='yes'])/length(bank.admin$y))*100
+percent.bc.y.yes <- (length(bank.bc$y[bank.bc$y=='yes'])/length(bank.bc$y))*100
+percent.entre.y.yes <- (length(bank.entre$y[bank.entre$y=='yes'])/length(bank.entre$y))*100
+percent.hm.y.yes <- (length(bank.hm$y[bank.hm$y=='yes'])/length(bank.hm$y))*100
+percent.mgmt.y.yes <- (length(bank.mgmt$y[bank.mgmt$y=='yes'])/length(bank.mgmt$y))*100
+percent.retired.y.yes <- (length(bank.retired$y[bank.retired$y=='yes'])/length(bank.retired$y))*100
+percent.se.y.yes <- (length(bank.se$y[bank.se$y=='yes'])/length(bank.se$y))*100
+percent.services.y.yes <- (length(bank.services$y[bank.services$y=='yes'])/length(bank.services$y))*100
+percent.student.y.yes <- (length(bank.student$y[bank.student$y=='yes'])/length(bank.student$y))*100
+percent.tech.y.yes <- (length(bank.tech$y[bank.tech$y=='yes'])/length(bank.tech$y))*100
+percent.unemployed.y.yes <- (length(bank.unemployed$y[bank.unemployed$y=='yes'])/length(bank.unemployed$y))*100
+percent.unk.y.yes <- (length(bank.unk$y[bank.unk$y=='yes'])/length(bank.unk$y))*100
+
+#creating a data frame of the job types, percent that said yes, and the total count per job
+y.percentages.by.job <- c(percent.admin.y.yes, percent.bc.y.yes, percent.entre.y.yes, percent.hm.y.yes, percent.mgmt.y.yes, percent.retired.y.yes, percent.se.y.yes, percent.services.y.yes, percent.student.y.yes, percent.tech.y.yes, percent.unemployed.y.yes, percent.unk.y.yes)
+jobs <- c("Admin", "Blue-collar", "Entrepreneur", "Housemaid", "Management", "Retired", "Self-employed", "Services", "Student", "Technician", "Unemployed", "Unknown")
+jobs <- factor(jobs, levels=c("Admin", "Blue-collar", "Entrepreneur", "Housemaid", "Management", "Retired", "Self-employed", "Services", "Student", "Technician", "Unemployed", "Unknown"))
+n.per.job <- c(length(bank.admin$y), length(bank.bc$y), length(bank.entre$y), length(bank.hm$y), length(bank.mgmt$y), length(bank.retired$y), length(bank.se$y), length(bank.services$y), length(bank.student$y), length(bank.tech$y), length(bank.unemployed$y), length(bank.unk$y))
+y.percentages.by.jobs.df <- data.frame(jobs, y.percentages.by.job, n.per.job)
+
+#making a string of the total counts of who said yes per job type
+n.of.y.percentages.by.job <- c(length(bank.admin$y[bank.admin$y=='yes']), length(bank.bc$y[bank.bc$y=='yes']), length(bank.entre$y[bank.entre$y=='yes']), length(bank.hm$y[bank.hm$y=='yes']), length(bank.mgmt$y[bank.mgmt$y=='yes']), length(bank.retired$y[bank.retired$y=='yes']), length(bank.se$y[bank.se$y=='yes']), length(bank.services$y[bank.services$y=='yes']), length(bank.student$y[bank.student$y=='yes']), length(bank.tech$y[bank.tech$y=='yes']), length(bank.unemployed$y[bank.unemployed$y=='yes']), length(bank.unk$y[bank.unk$y=='yes']))
+
+#bar graph of the percent who enrolled in Term Deposit per job type (and their total counts)
+ggplot(y.percentages.by.jobs.df, aes(x=reorder(jobs, y.percentages.by.job), y=y.percentages.by.job)) + geom_bar(stat="identity", fill="gold2") + theme_dark() + labs(title="Term Deposit % distribution by Employment Type", y="Term Deposit %", x="Jobs") + geom_hline(yintercept=(100*(length(bank$y[bank$y=='yes'])/length(bank$y))), colour="red3") + annotate("text", x = 1:12, y = 1, label = n.of.y.percentages.by.job) + coord_flip()
+```
+
+### Term Deposit % distribution by Marital Status
+```{r, percent TDs per marital status, echo=FALSE}
+bank.married <- subset(bank, marital=="married")
+bank.divorced <- subset(bank, marital=="divorced")
+bank.single <- subset(bank, marital=="single")
+
+percent.married.y.yes <- (length(bank.married$y[bank.married$y=='yes'])/length(bank.married$y))*100
+percent.divorced.y.yes <- (length(bank.divorced$y[bank.divorced$y=='yes'])/length(bank.divorced$y))*100
+percent.single.y.yes <- (length(bank.single$y[bank.single$y=='yes'])/length(bank.single$y))*100
+
+y.percentages.by.marital.status <- c(percent.single.y.yes, percent.married.y.yes, percent.divorced.y.yes)
+marital.status <- c("Single", "Married", "Divorced")
+marital.status <- factor(marital.status, levels=c("Single", "Married", "Divorced"))
+n.per.marital.status <- c(length(bank.single$y), length(bank.married$y), length(bank.divorced$y))
+y.percentages.by.marital.status.df <- data.frame(marital.status, y.percentages.by.marital.status, n.per.marital.status)
+
+n.of.y.percentages.by.marital.status <- c(length(bank.single$y[bank.single$y=='yes']), length(bank.married$y[bank.married$y=='yes']), length(bank.divorced$y[bank.divorced$y=='yes']))
+
+ggplot(y.percentages.by.marital.status.df, aes(x=marital.status, y=y.percentages.by.marital.status)) + geom_bar(stat="identity", fill="gold2") + theme_dark() + labs(title="Term Deposit % distribution by Marital Status", y="Term Deposit %", x="Marital Status") + geom_hline(yintercept=(100*(length(bank$y[bank$y=='yes'])/length(bank$y))), colour="red3") + annotate("text", x = 1:3, y = 1, label = n.of.y.percentages.by.marital.status)
+```
+
+### Plotting of the % who started a Term Deposit in a given month contact was made
+```{r, percent TDs per month contacted, echo=FALSE}
+#when we used machine learning we found particular months were statistically significant as a predictor for Term Deposit
+#making subsets by month of the data
+bank.jan <- subset(bank, month=="jan")
+bank.feb <- subset(bank, month=="feb")
+bank.mar <- subset(bank, month=="mar")
+bank.apr <- subset(bank, month=="apr")
+bank.may <- subset(bank, month=="may")
+bank.jun <- subset(bank, month=="jun")
+bank.jul <- subset(bank, month=="jul")
+bank.aug <- subset(bank, month=="aug")
+bank.sep <- subset(bank, month=="sep")
+bank.oct <- subset(bank, month=="oct")
+bank.nov <- subset(bank, month=="nov")
+bank.dec <- subset(bank, month=="dec")
+
+#to get percentages of yes's by given month
+percent.jan.y.yes <- (length(bank.jan$y[bank.jan$y=='yes'])/length(bank.jan$y))*100
+percent.feb.y.yes <- (length(bank.feb$y[bank.feb$y=='yes'])/length(bank.feb$y))*100
+percent.mar.y.yes <- (length(bank.mar$y[bank.mar$y=='yes'])/length(bank.mar$y))*100
+percent.apr.y.yes <- (length(bank.apr$y[bank.apr$y=='yes'])/length(bank.apr$y))*100
+percent.may.y.yes <- (length(bank.may$y[bank.may$y=='yes'])/length(bank.may$y))*100
+percent.jun.y.yes <- (length(bank.jun$y[bank.jun$y=='yes'])/length(bank.jun$y))*100
+percent.jul.y.yes <- (length(bank.jul$y[bank.jul$y=='yes'])/length(bank.jul$y))*100
+percent.aug.y.yes <- (length(bank.aug$y[bank.aug$y=='yes'])/length(bank.aug$y))*100
+percent.sep.y.yes <- (length(bank.sep$y[bank.sep$y=='yes'])/length(bank.sep$y))*100
+percent.oct.y.yes <- (length(bank.oct$y[bank.oct$y=='yes'])/length(bank.oct$y))*100
+percent.nov.y.yes <- (length(bank.nov$y[bank.nov$y=='yes'])/length(bank.nov$y))*100
+percent.dec.y.yes <- (length(bank.dec$y[bank.dec$y=='yes'])/length(bank.dec$y))*100
+
+#making a data frame of the data
+y.percentages.by.months <- c(percent.jan.y.yes, percent.feb.y.yes, percent.mar.y.yes, percent.apr.y.yes, percent.may.y.yes, percent.jun.y.yes, percent.jul.y.yes, percent.aug.y.yes, percent.sep.y.yes, percent.oct.y.yes, percent.nov.y.yes, percent.dec.y.yes)
+months <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+months <- factor(months, levels=c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+n.per.month <- c(length(bank.jan$y), length(bank.feb$y), length(bank.mar$y), length(bank.apr$y), length(bank.may$y), length(bank.jun$y), length(bank.jul$y), length(bank.aug$y), length(bank.sep$y), length(bank.oct$y), length(bank.nov$y), length(bank.dec$y))
+y.percentages.by.months.df <- data.frame(months, y.percentages.by.months, n.per.month)
+
+#creating list of n's of the people who started TD per month
+n.of.y.percentages.by.month <- c(length(bank.jan$y[bank.jan$y=='yes']), length(bank.feb$y[bank.feb$y=='yes']), length(bank.mar$y[bank.mar$y=='yes']), length(bank.apr$y[bank.apr$y=='yes']), length(bank.may$y[bank.may$y=='yes']), length(bank.jun$y[bank.jun$y=='yes']), length(bank.jul$y[bank.jul$y=='yes']), length(bank.aug$y[bank.aug$y=='yes']), length(bank.sep$y[bank.sep$y=='yes']), length(bank.oct$y[bank.oct$y=='yes']), length(bank.nov$y[bank.nov$y=='yes']), length(bank.dec$y[bank.dec$y=='yes']))
+
+#plotting of the % who started a Term Deposit in a given month contact was made
+ggplot(y.percentages.by.months.df, aes(x=months, y=y.percentages.by.months)) + geom_bar(stat="identity", fill="gold2") + theme_dark() + labs(title="Term Deposit % distribution by Months contact was made", y="Term Deposit %", x="Months") + geom_hline(yintercept=(100*(length(bank$y[bank$y=='yes'])/length(bank$y))), colour="red3") + annotate("text", x = 1:12, y = 1, label = n.of.y.percentages.by.month)
+#march, september, october, and december for whatever reason are far above the others. need error bars on this as well
+```
+
+#### NOTE: March, September, October, and December for whatever reason are far above the others.
+
+### Contact duration vs. term deposit box plot
+```{r, contact vs TD relationships, echo=FALSE, warning = FALSE}
+#contact duration vs. term deposit box plot
+ggplot(bank, aes(x=y, y=duration, fill=y, color="white")) + geom_boxplot() + scale_y_log10() + theme_dark() + scale_fill_manual(values=c("red3", "gold2")) + scale_color_manual(values=c("ivory2")) + labs(title="Duration of Contact vs. Term Deposit Outcome", y="Duration of Contact", x="Term Deposit Outcome", fill="Deposit Result") + guides(colour=FALSE)
+```
+
+### Duration related to term deposit and contact type
+```{r, echo=FALSE, warning = FALSE}
+#duration related to term deposit and contact type
+ggplot(bank, aes(x=contact, y=duration, fill=y, color="white")) + geom_boxplot() + scale_y_log10() + theme_dark() + scale_fill_manual(values=c("red3", "gold2")) + scale_color_manual(values=c("ivory2")) + labs(title="Duration of Contact vs. Contact Type", y="Duration of Contact", x="Contact Type", fill="Deposit Result") + guides(colour=FALSE)
+```
+
+``` {r, echo = FALSE}
+# Set working directory
+setwd("C:\\Users\\STUARTBENEFIELD\\Documents\\SMU\\DDS\\CaseStudy2")
+
+# Read in data set
+bankData <- read.table("bank-full.csv", sep = ";", header = TRUE)
+```
+
+``` {r echo = FALSE}
+# Explore data
+#head(bankData)
+#summary(bankData)
+#dim(bankData)
+```
+
+``` {r, echo = FALSE}
+# Set seed and create train and test data
+set.seed(314)
+sampleSize = floor(0.25*nrow(bankData))
+indices <- sample(seq_len(nrow(bankData)), size = sampleSize)
+train <- bankData[-indices,]
+test <- bankData[indices,]
+test$y <- factor(test$y)
+```
+
+# Random Forest Model
+``` {r, echo = FALSE}
+# Create random forest model and descriptive stats
+rfModel <- randomForest(as.factor(y) ~ ., data = train, importance = TRUE, ntree = 100)
+```
+
+#### Error Rate ~ 9%
+``` {r, echo = FALSE}
+print(rfModel)
+```
+
+### Explanatory variable importance
+``` {r, echo = FALSE}
+#round(importance(rfModel), 2)
+varImpPlot(rfModel)
+```
+
+### Number of Trees vs Error Rate
+``` {r, echo = FALSE}
+plot(rfModel)
+predictionProb <- as.data.frame(predict(rfModel, test, type="prob"))
+result.roc <- roc(test$y, predictionProb$yes)
+```
+
+### ROC Curve
+``` {r, echo = FALSE}
+plot(result.roc, print.thres="best", print.thres.best.method="closest.topleft", print.auc = TRUE)
+```
+
+# Logistic Regression Model
+``` {r, echo = FALSE}
+# Create Logistic model and descriptive stats
+logisticModel <- glm(y ~ ., data = train, family=binomial(link="logit"))
+logisticProb <- as.data.frame(predict(logisticModel, test, type = "response"))
+colnames(logisticProb) <- c("yes")
+```
+
+### ROC curve
+``` {r, echo = FALSE}
+result.roc <- roc(test$y, logisticProb$yes)
+plot(result.roc, print.thres="best", print.thres.best.method="closest.topleft", print.auc = TRUE)
+```
+
+### Confusion Matrix
+#### Error Rate ~ 10%
+``` {r, echo = FALSE}
+threshold <- 0.5
+predictedValues <- ifelse(predict(logisticModel, type="response")>threshold, 1, 0)
+actualValues <- train$y
+table(predictedValues, actualValues)
+```
+
+# Simplified Logistic Regression Model
+``` {r, echo = FALSE}
+# Create a simplified logistic model and descriptive stats
+simpleModel <- glm(y ~ duration + month + job + education + marital, data = train, family=binomial(link="logit"))
+logisticProb <- as.data.frame(predict(simpleModel, test, type = "response"))
+colnames(logisticProb) <- c("yes")
+```
+
+### ROC Curve
+``` {r, echo = FALSE}
+result.roc <- roc(test$y, logisticProb$yes)
+plot(result.roc, print.thres="best", print.thres.best.method="closest.topleft", print.auc = TRUE)
+```
+
+### Confusion Matrix
+#### Error Rate ~ 11%
+``` {r, echo = FALSE}
+threshold <- 0.5
+predictedValues <- ifelse(predict(simpleModel, type="response")>threshold, 1, 0)
+actualValues <- train$y
+table(predictedValues, actualValues)
+```
+
+### Odds
+``` {r, echo = FALSE}
+exp(coefficients(simpleModel))
+```
+##### Holding all other variables equal, for every one unit increase in duration it is estimated the odds increase by 1%
+##### Holding all other variables equal, it is estimated that month can increase odds as much as 5.6% (March)
+##### Holding all other variables equal, it is estimated job can increase odds as much as 2.13% (Student)
+##### Holding all other variables equal, it is estimated education can increase odds as much as 1.72% (Tertiary)
+##### Holding all other variables equal, it is estimated marital status can increase odds as much as 1.23% (Single)
+
+# Probability Exploration
+``` {r, echo = FALSE}
+# Define Layout
+ui <- fluidPage(
+  # App Title
+  titlePanel('Probability of Long Term Deposit'),
+  
+  # Left Sidebar
+  sidebarLayout(
+    # sidebar panel
+    sidebarPanel(
+      # Duration slider
+      sliderInput("duration", label = h3("Call Duration (minutes)"), min = 0, 
+                  max = 60, step = .1, value = 0),
+      
+      # Month Selector
+      selectInput("month", label = h3("Select Month:"), 
+                  choices = list("January" = "jan", 
+                                 "February" = "feb",
+                                 "March" = "mar",
+                                 "April" = "apr",
+                                 "May" = "may",
+                                 "June" = "jun",
+                                 "July" = "jul",
+                                 "August" = "aug",
+                                 "September" = "sep",
+                                 "October" = "oct",
+                                 "November" = "nov",
+                                 "December" = "dec"), 
+                  selected = "jan"),
+      
+      # Marital Status    
+      selectInput("marital", label = h3("Select Marital Status"),
+                  choices = list("Married" = "married",
+                                 "Single" = "single",
+                                 "Divorced" = "divorced"),
+                  selected = "married"),
+      
+      # Education Level
+      selectInput("education", label = h3("Select Education Level"),
+                  choices = list("Primary" = "primary",
+                                 "Secondary" = "secondary",
+                                 "Tertiary" = "tertiary",
+                                 "Other" = "unknown"),
+                  selected = "primary"),
+      
+      # Current Job
+      selectInput("job", label = h3("Select Current Job Role"),
+                  choices = list("Administrator" = "admin.",
+                                 "Blue-Collar" = "blue-collar",
+                                 "Entrepreneur" = "entrepreneur",
+                                 "Housemaid" = "housemaid",
+                                 "Management" = "management",
+                                 "Retired" = "retired",
+                                 "Self-Employed" = "self-employed",
+                                 "Services" = "services",
+                                 "Student" = "student",
+                                 "Technician" = "technician",
+                                 "Unemployed" = "unemployed",
+                                 "Other" = "unknown"),
+                  selected = 1)
+
+      ),
+  
+      mainPanel(
+        h1("The estimated probability is: "),
+        h1(textOutput("predict")),
+        h3("95% Confidence Interval"),
+        h3(textOutput("confidence")),
+        plotOutput("plot")
+      )
+  )
+)
+
+
+# Define Controls
+server <- function(input, output) {
+  temp <- c()
+  month <- c("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec")
+  simpleModel <- glm(y ~ duration + month + job + education + marital, data = train, family=binomial(link="logit"))
+  result <- data.frame("Predict" = 0, "Lower" = 0, "Upper" = 0)
+  
+  getProb <- reactive({
+    prob <- predict(simpleModel, newdata = data.frame(duration = (input$duration*60), month = input$month, job = input$job, 
+                                              education = input$education, marital = input$marital), type = "response", se.fit = TRUE)
+    result$Predict <- round(prob$fit * 100, 2)
+    result$Lower <- round((prob$fit * 100) - (1.96*prob$se.fit), 2)
+    result$Upper <- round((prob$fit * 100) + (1.96*prob$se.fit), 2)
+    
+    return(result)
+  })
+  
+  getPlot <- reactive({
+    for (x in 1:12) {
+      temp[x] <- predict(simpleModel, newdata = data.frame(month = month[x], job = input$job, duration = (input$duration*60),
+                                                           education = input$education, marital = input$marital), type = "response", se.fit = FALSE)[1]
+    }
+    return(temp)
+  })
+  
+  # Display estimated probability
+  output$predict <- renderText({ getProb()[[1]] })
+  output$confidence <- renderText({ paste("[", getProb()$Lower, getProb()$Upper, "]") })
+  output$plot <- renderPlot({ result <- getPlot()
+    plot(1:12, result, ylim=c(0,1), xaxt = "n", main="Probability of Success", xlab="Month", ylab="Probability")
+    axis(1, at=1:12, labels=month[1:12])
+    lines(1:12, result)
+  })
+}
+
+# Run App
+shinyApp(ui = ui, server = server)
+```
