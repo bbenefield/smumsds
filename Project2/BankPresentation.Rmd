@@ -19,7 +19,7 @@ library(caret)
 ```
 
 # Executive Summary
-The purpose of this data set is to predict whether a client will subscribe to a long term deposit (CD). The data was collected from a Portuguese banking institute which conducted a marketing campaign through phone calls.
+The purpose of this data set is to predict whether a client will subscribe to a long term deposit (CD). The data was collected from a Portuguese banking institute which conducted a marketing campaign through its own contact-center calling current banking customers. The data consists of data collected between May 2008 to November 2010, totalling 79354 contacts.
 
 # Introduction
 Using variables such age, marital status, education, job, duration of the call, we attempted to classify whether a client would sign up for a long term deposit. After initial exploration of the data through plots and graphs we used a random forest model, logistic regression model, and a simplified regression model to aid in this classification. 

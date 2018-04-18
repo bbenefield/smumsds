@@ -4,8 +4,6 @@ author: "Ryan Bass, Brett Benefield"
 date: "April 17, 2018"
 output: html_document
 ---
-#### Data Set: https://archive.ics.uci.edu/ml/datasets/bank+marketing
-#### Source: [Moro et al., 2014] S. Moro, P. Cortez and P. Rita. A Data-Driven Approach to Predict the Success of Bank Telemarketing. Decision Support Systems, Elsevier, 62:22-31, June 2014
 
 # Long Term Deposit Prediction
 ``` {r echo = TRUE, message = FALSE, warning = FALSE}
@@ -17,12 +15,6 @@ library(pROC)
 library(shiny)
 library(caret)
 ```
-
-# Executive Summary
-The purpose of this data set is to predict whether a client will subscribe to a long term deposit (CD). The data was collected from a Portuguese banking institute which conducted a marketing campaign through phone calls.
-
-# Introduction
-Using variables such age, marital status, education, job, duration of the call, we attempted to classify whether a client would sign up for a long term deposit. After initial exploration of the data through plots and graphs we used a random forest model, logistic regression model, and a simplified regression model to aid in this classification. 
 
 ```{r, data load initial analysis, echo=TRUE, warning = FALSE}
 # Set working directory
@@ -245,15 +237,7 @@ test$y <- factor(test$y)
 ``` {r}
 # Create random forest model and descriptive stats
 rfModel <- randomForest(as.factor(y) ~ ., data = train, importance = TRUE)
-```
-
-### Error Rate %9
-``` {r}
 print(rfModel)
-```
-
-### Explanatory variable importance and ROC curve
-``` {r}
 round(importance(rfModel), 2)
 varImpPlot(rfModel)
 plot(rfModel)
@@ -268,16 +252,12 @@ plot(result.roc, print.thres="best", print.thres.best.method="closest.topleft")
 logisticModel <- glm(y ~ ., data = train, family=binomial(link="logit"))
 logisticProb <- as.data.frame(predict(logisticModel, test, type = "response"))
 colnames(logisticProb) <- c("yes")
-```
-
-# ROC curve
-``` {r}
 result.roc <- roc(test$y, logisticProb$yes)
 plot(result.roc, print.thres="best", print.thres.best.method="closest.topleft")
 ```
 
 # Confusion Table
-### Error Rate ~ 10%
+## Error Rate ~ 10%
 ``` {r}
 threshold <- 0.5
 predictedValues <- ifelse(predict(logisticModel, type="response")>threshold, 1, 0)
@@ -287,7 +267,7 @@ table(predictedValues, actualValues)
 
 # Model Summary
 ``` {r}
-#summary(logisticModel)
+summary(logisticModel)
 ```
 
 # Simplified Logistic Regression Model
@@ -296,16 +276,12 @@ table(predictedValues, actualValues)
 simpleModel <- glm(y ~ duration + month + job + education + marital, data = train, family=binomial(link="logit"))
 logisticProb <- as.data.frame(predict(simpleModel, test, type = "response"))
 colnames(logisticProb) <- c("yes")
-```
-
-# ROC Curve
-``` {r}
 result.roc <- roc(test$y, logisticProb$yes)
 plot(result.roc, print.thres="best", print.thres.best.method="closest.topleft")
 ```
 
 # Confusion Table
-### Error Rate ~ 11%
+## Error Rate ~ 11%
 ``` {r}
 threshold <- 0.5
 predictedValues <- ifelse(predict(simpleModel, type="response")>threshold, 1, 0)
@@ -315,18 +291,9 @@ table(predictedValues, actualValues)
 
 # Model Summary
 ``` {r}
-#summary(simpleModel)
-```
-
-# Odds
-``` {r}
+summary(simpleModel)
 exp(coefficients(simpleModel))
 ```
-Holding all other variables equal, for every one unit increase in duration it is estimated the odds increase by 1%
-Holding all other variables equal, it is estimated that month can increase odds as much as 5.6% (March)
-Holding all other variables equal, it is estimated job can increase odds as much as 2.13% (Student)
-Holding all other variables equal, it is estimated education can increase odds as much as 1.72% (Tertiary)
-Holding all other variables equal, it is estimated marital status can increase odds as much as 1.23% (Single)
 
 # Shiny App
 ``` {r}
